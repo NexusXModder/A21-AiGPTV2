@@ -106,7 +106,7 @@
             errorElement.classList.add('hidden');
             
             try {
-                const PUBLIC_KNOWLEDGE_PATH = `/artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`;
+                const PUBLIC_KNOWLEDGE_PATH = `artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`;
                 const docRef = doc(db, PUBLIC_KNOWLEDGE_PATH);
                 
                 // Determine the image to upload: new file, or retain the existing one if no new file is selected
@@ -303,7 +303,7 @@
 
         // --- FIREBASE INITIALIZATION & LISTENER ---
         const startKnowledgeListener = () => {
-            const PUBLIC_KNOWLEDGE_PATH = `/artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`;
+            const PUBLIC_KNOWLEDGE_PATH = `artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`;
             const docRef = doc(db, PUBLIC_KNOWLEDGE_PATH);
 
             onSnapshot(docRef, (docSnap) => {

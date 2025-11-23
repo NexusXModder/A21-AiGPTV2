@@ -330,7 +330,7 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
         // --- FIRESTORE LISTENER ---
         const startKnowledgeListener = () => {
             // The path must match the AdminPanel's WRITE path for the public data
-            const docRef = doc(db, `/artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`);
+            const docRef = doc(db, `artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`);
 
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
