@@ -6,7 +6,6 @@
     <title>AI Knowledge Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Use Inter font family -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
@@ -25,23 +24,19 @@
 </head>
 <body class="min-h-screen">
 
-    <!-- Landing Page Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        <!-- Header -->
         <header class="flex justify-between items-center py-4">
             <div class="text-3xl font-extrabold text-indigo-600 flex items-center">
                 <i data-lucide="sparkles" class="w-6 h-6 mr-2"></i>
                 Knowledge AI
             </div>
-            <!-- Admin Panel Button: CORRECTED LINK to new HTML file -->
             <a href="/admin_panel.html" class="bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-indigo-100 transition duration-150 flex items-center text-sm">
                 <i data-lucide="lock" class="w-4 h-4 mr-1"></i>
                 Go to Admin Login
             </a>
         </header>
 
-        <!-- Hero Section -->
         <section class="text-center py-20 bg-white rounded-xl shadow-lg mt-8">
             <h1 class="text-5xl font-bold text-gray-900 mb-4 tracking-tight">
                 Your AI, Grounded in Your Expertise
@@ -55,7 +50,6 @@
             </button>
         </section>
 
-        <!-- Features Section -->
         <section class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-500">
                 <i data-lucide="database" class="w-8 h-8 text-indigo-500 mb-3"></i>
@@ -74,16 +68,13 @@
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="text-center py-8 mt-16 text-gray-500 text-sm border-t border-gray-200">
             &copy; 2024 AI Knowledge Platform. All rights reserved.
         </footer>
     </div>
     
-    <!-- Floating AI Chat Widget -->
     <div id="chat-widget" class="fixed bottom-6 right-6 w-full max-w-sm h-auto max-h-[80vh] bg-white rounded-2xl shadow-2xl flex flex-col z-50 transition-all duration-300 hidden">
         
-        <!-- Chat Header -->
         <div class="p-4 bg-indigo-600 text-white rounded-t-2xl flex justify-between items-center">
             <div class="font-semibold text-lg flex items-center">
                 <i data-lucide="message-square" class="w-5 h-5 mr-2"></i>
@@ -94,22 +85,18 @@
             </button>
         </div>
 
-        <!-- Chat History -->
         <div id="chat-history" class="flex-1 p-4 space-y-3 overflow-y-auto" style="min-height: 250px;">
             <div class="bg-gray-100 text-gray-700 p-3 rounded-xl shadow-sm mr-auto max-w-[85%]">
                 <strong class="text-sm block mb-1 text-indigo-600">AI Assistant</strong>
                 Hello! I am grounded by the knowledge uploaded by the administrator. How can I assist you today?
             </div>
-            <!-- Dynamic messages will be appended here -->
-        </div>
+            </div>
         
-        <!-- Loading State -->
         <div id="ai-loading" class="p-3 text-sm text-gray-500 flex items-center hidden">
             <i data-lucide="loader-2" class="w-4 h-4 animate-spin mr-2"></i>
             AI is checking the knowledge base...
         </div>
 
-        <!-- Chat Input -->
         <form id="chat-form" class="p-4 border-t border-gray-200">
             <div class="flex gap-2">
                 <input
@@ -137,14 +124,22 @@
         import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // --- CONSTANTS ---
-        // *** WARNING: This key is hardcoded for deployment testing. For production, a proxy is needed. ***
-        const GEMINI_API_KEY = "AIzaSyAvMiWCYmWbGfr4HZSEayJ61tBhOLUBik"; 
+        // CORRECTED GEMINI API KEY FROM .ENV
+        const GEMINI_API_KEY = "AIzaSyAvMiWCYmWbGLfr4HZSEayJ61tBhOLUBik"; 
         const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
         
-        // Global variables from the canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        // --- HARDCODED FIREBASE CONFIGURATION (The fix for the missing config error) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCSgJ3dP9iOcp-yc-pZqh2e8kynygrs2sk",
+            authDomain: "ai-21gpt.firebaseapp.com",
+            projectId: "ai-21gpt",
+            storageBucket: "ai-21gpt.firebasestorage.app",
+            messagingSenderId: "1032282591164",
+            appId: "1:1032282591164:web:1d99408401f0e8025165b9",
+            measurementId: "G-FSEJP366FD"
+        };
+        const appId = firebaseConfig.projectId;
 
         // --- DOM ELEMENTS ---
         const chatHistory = document.getElementById('chat-history');
@@ -314,7 +309,8 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
 
         // --- FIREBASE INITIALIZATION ---
         const initFirebase = async () => {
-            if (!firebaseConfig) {
+            // Check if hardcoded config is present
+            if (!firebaseConfig.apiKey) {
                 renderMessage("Error: Firebase configuration missing.", 'model');
                 console.error("Firebase configuration missing.");
                 return;
@@ -371,4 +367,3 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
     </script>
 </body>
 </html>
-

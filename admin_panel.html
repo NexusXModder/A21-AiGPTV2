@@ -14,8 +14,7 @@
 </head>
 <body class="min-h-screen">
     <div id="app">
-        <!-- Content will be rendered here -->
-    </div>
+        </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -23,14 +22,23 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
-        // IMPORTANT: Replace this with a strong, secret password immediately.
+        // ADMIN PASSWORD (From .env file)
         const ADMIN_PASSWORD = "arafmahbub@16"; 
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
 
-        // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // --- HARDCODED FIREBASE CONFIGURATION (The fix for the missing config error) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCSgJ3dP9iOcp-yc-pZqh2e8kynygrs2sk",
+            authDomain: "ai-21gpt.firebaseapp.com",
+            projectId: "ai-21gpt",
+            storageBucket: "ai-21gpt.firebasestorage.app",
+            messagingSenderId: "1032282591164",
+            appId: "1:1032282591164:web:1d99408401f0e8025165b9",
+            measurementId: "G-FSEJP366FD"
+        };
+        const appId = firebaseConfig.projectId;
+        const initialAuthToken = null;
+
 
         // --- FIREBASE AND STATE ---
         let db = null;
@@ -111,7 +119,7 @@
                 
                 // Determine the image to upload: new file, or retain the existing one if no new file is selected
                 let imageToUpload = imageBase64Data;
-                if (!imageToUpload && currentImage) {
+                if (!imageToUpload && currentImage && document.getElementById('image-file-input').value === '') {
                     // If no new file is selected, but an image already exists in currentImage, we send the existing image data
                     imageToUpload = currentImage;
                 }
@@ -252,11 +260,9 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="lg:col-span-2 space-y-8">
-                            <!-- Knowledge Editor -->
                             <div class="bg-white p-6 rounded-xl shadow-2xl border-t-4 border-indigo-600">
                                 <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">Update Knowledge Base</h2>
                                 
-                                <!-- Text Input -->
                                 <div class="mb-6">
                                     <label class="block text-gray-700 font-medium mb-2">Text Knowledge (Max 32KB)</label>
                                     <textarea
@@ -267,7 +273,6 @@
                                     >${currentText === 'No content uploaded yet.' ? '' : currentText}</textarea>
                                 </div>
 
-                                <!-- Image Input -->
                                 <div class="mb-6">
                                     <label class="block text-gray-700 font-medium mb-2">Image Knowledge (Optional, Single Image)</label>
                                     <input
@@ -279,11 +284,9 @@
                                     <p id="image-filename" class="mt-2 text-sm text-gray-500 flex items-center">
                                        ${currentImage ? 'Current image loaded.' : 'No file selected.'}
                                     </p>
-                                    <!-- Hidden input to store base64 data -->
                                     <input type="hidden" id="image-base64-data" value="${currentImage || ''}">
                                 </div>
 
-                                <!-- Upload Button -->
                                 <button
                                     id="upload-button"
                                     class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center shadow-lg disabled:bg-indigo-300 disabled:cursor-not-allowed"
@@ -294,7 +297,6 @@
                             </div>
                         </div>
                         
-                        <!-- Current Knowledge Viewer (Right Column) -->
                         <div class="lg:col-span-1">
                             ${renderCurrentKnowledge()}
                         </div>
@@ -342,7 +344,8 @@
 
 
         const initFirebase = async () => {
-            if (!firebaseConfig) {
+            // Check if hardcoded config is present
+            if (!firebaseConfig.apiKey) {
                 appContainer.innerHTML = `<div class="p-8 text-center text-red-600">Error: Firebase configuration missing.</div>`;
                 return;
             }
@@ -383,4 +386,3 @@
     </script>
 </body>
 </html>
-
