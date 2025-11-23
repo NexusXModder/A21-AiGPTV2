@@ -4,7 +4,7 @@
   "description": "Admin and Public frontend for the AI Knowledge Base.",
   "main": "index.html",
   "scripts": {
-    "build": "echo \"window.FIREBASE_CONFIG = ${FIREBASE_CONFIG}; window.GEMINI_API_KEY = '${GEMINI_API_KEY}'; window.ADMIN_PASSWORD = '${ADMIN_PASSWORD}';\" > config.js",
+    "build": "node generate-config.js",
     "start": "serve -s .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
