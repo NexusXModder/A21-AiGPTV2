@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Knowledge Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .knowledge-box { max-height: 200px; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app">
+        <!-- Content will be rendered here -->
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURATION ---
+        // IMPORTANT: Replace this with a strong, secret password immediately.
+        const ADMIN_PASSWORD = "arafmahbub@16"; 
+        const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- FIREBASE AND STATE ---
+        let db = null;
+        let auth = null;
+        let isAuthenticated = false;
+        let currentText = 'Loading...';
+        let currentImage = null;
+        let isUploading = false;
+
+        // --- DOM Elements ---
+        const appContainer = document.getElementById('app');
+        
+        // Helper to update the UI
+        const forceRender = () => {
+            if (isAuthenticated) {
+                renderAdminDashboard();
+            } else {
+                renderLoginForm();
+            }
+        };
+
+        // --- HANDLERS ---
+        const handleLogin = (e) => {
+            e.preventDefault();
+            const passwordInput = document.getElementById('password-input').value;
+            const errorElement = document.getElementById('error-message');
+            const statusElement = document.getElementById('status-message');
+
+            errorElement.textContent = '';
+            statusElement.textContent = '';
+            
+            if (passwordInput === ADMIN_PASSWORD) {
+                isAuthenticated = true;
+                statusElement.textContent = 'Login successful. Welcome to the Admin Panel.';
+                forceRender();
+            } else {
+                errorElement.innerHTML = `<span class="flex items-center"><i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Incorrect password. Please try again.</span>`;
+                errorElement.classList.remove('hidden');
+                lucide.createIcons();
+            }
+        };
+
+        const handleImageChange = (e) => {
+            const file = e.target.files[0];
+            const imageBase64Data = document.getElementById('image-base64-data');
+            const imageFilename = document.getElementById('image-filename');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    imageBase64Data.value = reader.result;
+                    imageFilename.innerHTML = `<span class="flex items-center text-green-500"><i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Image selected: ${file.name}</span>`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imageBase64Data.value = '';
+                imageFilename.textContent = `No file selected.`;
+            }
+            lucide.createIcons();
+        };
+
+        const handleUpload = async () => {
+            if (!db || !isAuthenticated || isUploading) return;
+
+            const contentInput = document.getElementById('content-input').value;
+            const imageBase64Data = document.getElementById('image-base64-data').value;
+            const statusElement = document.getElementById('status-message');
+            const errorElement = document.getElementById('error-message');
+
+            isUploading = true;
+            statusElement.innerHTML = `<span class="flex items-center"><i data-lucide="loader-2" class="w-5 h-5 mr-2 animate-spin"></i> Uploading...</span>`;
+            statusElement.classList.remove('hidden');
+            errorElement.classList.add('hidden');
+            
+            try {
+                const PUBLIC_KNOWLEDGE_PATH = `/artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`;
+                const docRef = doc(db, PUBLIC_KNOWLEDGE_PATH);
+                
+                // Determine the image to upload: new file, or retain the existing one if no new file is selected
+                let imageToUpload = imageBase64Data;
+                if (!imageToUpload && currentImage) {
+                    // If no new file is selected, but an image already exists in currentImage, we send the existing image data
+                    imageToUpload = currentImage;
+                }
+
+                const payload = {
+                    content: contentInput,
+                    image: imageToUpload,
+                    timestamp: new Date().toISOString(),
+                    adminId: auth.currentUser?.uid || 'anonymous_admin'
+                };
+
+                await setDoc(docRef, payload);
+
+                statusElement.innerHTML = `<span class="flex items-center"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>Knowledge base updated successfully!</span>`;
+                document.getElementById('image-file-input').value = ''; // Clear file input
+                document.getElementById('image-filename').textContent = `No file selected.`;
+                lucide.createIcons(); 
+                
+                setTimeout(() => {
+                    statusElement.classList.add('hidden');
+                }, 4000);
+
+            } catch (e) {
+                console.error("Upload error:", e);
+                errorElement.innerHTML = `<span class="flex items-center"><i data-lucide="x-circle" class="w-5 h-5 mr-2"></i> Failed to upload knowledge: ${e.message}</span>`;
+                errorElement.classList.remove('hidden');
+                statusElement.classList.add('hidden');
+            } finally {
+                isUploading = false;
+            }
+        };
+        
+        const handleClearImage = () => {
+             const imageBase64Data = document.getElementById('image-base64-data');
+             const imageFileInput = document.getElementById('image-file-input');
+             const imageFilename = document.getElementById('image-filename');
+             const statusElement = document.getElementById('status-message');
+
+             imageBase64Data.value = '';
+             imageFileInput.value = '';
+             imageFilename.textContent = 'Image cleared.';
+             
+             // Update Firestore immediately to reflect the deletion
+             handleUpload();
+        };
+
+        const handleLogout = async () => {
+            isAuthenticated = false;
+            document.getElementById('password-input').value = '';
+            document.getElementById('status-message').textContent = 'Logged out.';
+            forceRender();
+            try {
+                await signOut(auth);
+            } catch(e) {
+                console.warn("Sign out failed:", e);
+            }
+        };
+
+        // --- RENDER FUNCTIONS (HTML string generation) ---
+        const renderCurrentKnowledge = () => {
+            const imageHtml = currentImage 
+                ? `<img src="${currentImage}" alt="Current Knowledge" class="max-h-64 max-w-full rounded-lg shadow-md object-contain border border-gray-300" />`
+                : `<div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-500 h-32 flex items-center justify-center border border-dashed border-gray-300">No image uploaded.</div>`;
+
+            return `
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center"><i data-lucide="database" class="w-5 h-5 mr-2"></i> Current Public Knowledge</h2>
+                    
+                    <div class="mb-4">
+                        <p class="font-medium text-gray-700 mb-1">Text:</p>
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-600 knowledge-box overflow-y-auto whitespace-pre-wrap border border-dashed border-gray-300">
+                            ${currentText || 'No text content available.'}
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="font-medium text-gray-700 mb-1">Image:</p>
+                        ${imageHtml}
+                        ${currentImage ? `<button onclick="handleClearImage()" class="mt-2 text-red-500 hover:text-red-700 text-sm font-medium flex items-center"><i data-lucide="x-circle" class="w-4 h-4 mr-1"></i> Clear Current Image</button>` : ''}
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderLoginForm = () => {
+            appContainer.innerHTML = `
+                <div class="max-w-md mx-auto mt-20 p-8 bg-white rounded-xl shadow-2xl border-t-4 border-indigo-600">
+                    <div class="text-center mb-6">
+                        <i data-lucide="lock" class="w-10 h-10 text-indigo-600 mx-auto mb-3"></i>
+                        <h1 class="text-2xl font-bold text-gray-800">Admin Panel Login</h1>
+                        <p class="text-sm text-gray-500">Enter the secret password to manage the AI knowledge base.</p>
+                    </div>
+                    
+                    <form id="login-form">
+                        <input
+                            type="password"
+                            id="password-input"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition mb-4"
+                            placeholder="Enter Admin Password"
+                            required
+                        />
+                        <button
+                            type="submit"
+                            class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center shadow-md"
+                        >
+                            <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
+                            Log In
+                        </button>
+                    </form>
+                    
+                    <div id="error-message" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg flex items-center text-sm hidden"></div>
+                    <div id="status-message" class="mt-4 p-3 bg-green-100 text-green-700 rounded-lg flex items-center text-sm hidden"></div>
+                </div>
+            `;
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            lucide.createIcons();
+        };
+
+        const renderAdminDashboard = () => {
+            appContainer.innerHTML = `
+                <div class="p-8 space-y-8">
+                    <header class="flex justify-between items-center pb-4 border-b border-gray-200">
+                        <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                            <i data-lucide="send" class="w-6 h-6 mr-3 text-indigo-600"></i>
+                            AI Knowledge Manager
+                        </h1>
+                        <button 
+                            id="logout-button"
+                            class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition flex items-center shadow-md"
+                        >
+                            <i data-lucide="log-out" class="w-4 h-4 mr-2"></i>
+                            Logout
+                        </button>
+                    </header>
+
+                    <div id="status-message" class="p-4 bg-green-100 text-green-700 rounded-lg flex items-center shadow-md hidden"></div>
+                    <div id="error-message" class="p-4 bg-red-100 text-red-700 rounded-lg flex items-center shadow-md hidden"></div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 space-y-8">
+                            <!-- Knowledge Editor -->
+                            <div class="bg-white p-6 rounded-xl shadow-2xl border-t-4 border-indigo-600">
+                                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">Update Knowledge Base</h2>
+                                
+                                <!-- Text Input -->
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 font-medium mb-2">Text Knowledge (Max 32KB)</label>
+                                    <textarea
+                                        id="content-input"
+                                        rows="8"
+                                        placeholder="Enter the text that the AI should use to answer public questions..."
+                                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition"
+                                    >${currentText === 'No content uploaded yet.' ? '' : currentText}</textarea>
+                                </div>
+
+                                <!-- Image Input -->
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 font-medium mb-2">Image Knowledge (Optional, Single Image)</label>
+                                    <input
+                                        type="file"
+                                        id="image-file-input"
+                                        accept="image/*"
+                                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                    />
+                                    <p id="image-filename" class="mt-2 text-sm text-gray-500 flex items-center">
+                                       ${currentImage ? 'Current image loaded.' : 'No file selected.'}
+                                    </p>
+                                    <!-- Hidden input to store base64 data -->
+                                    <input type="hidden" id="image-base64-data" value="${currentImage || ''}">
+                                </div>
+
+                                <!-- Upload Button -->
+                                <button
+                                    id="upload-button"
+                                    class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center shadow-lg disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                                >
+                                    <i data-lucide="upload" class="w-5 h-5 mr-2"></i>
+                                    Publish to AI Knowledge Base
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Current Knowledge Viewer (Right Column) -->
+                        <div class="lg:col-span-1">
+                            ${renderCurrentKnowledge()}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('logout-button').addEventListener('click', handleLogout);
+            document.getElementById('upload-button').addEventListener('click', handleUpload);
+            document.getElementById('image-file-input').addEventListener('change', handleImageChange);
+            lucide.createIcons();
+        };
+
+        // --- FIREBASE INITIALIZATION & LISTENER ---
+        const startKnowledgeListener = () => {
+            const PUBLIC_KNOWLEDGE_PATH = `/artifacts/${appId}/public/data/${KNOWLEDGE_DOC_PATH}`;
+            const docRef = doc(db, PUBLIC_KNOWLEDGE_PATH);
+
+            onSnapshot(docRef, (docSnap) => {
+                const oldText = currentText;
+                const oldImage = currentImage;
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    currentText = data.content || '';
+                    currentImage = data.image || null;
+                } else {
+                    currentText = 'No content uploaded yet.';
+                    currentImage = null;
+                }
+                
+                // Only re-render the dashboard if the user is authenticated and data has changed
+                if (isAuthenticated && (oldText !== currentText || oldImage !== currentImage)) {
+                    forceRender();
+                }
+            }, (error) => {
+                console.error("Firestore public knowledge listener error:", error);
+                const errorElement = document.getElementById('error-message');
+                if (errorElement) {
+                    errorElement.innerHTML = `<span class="flex items-center"><i data-lucide="x-circle" class="w-5 h-5 mr-2"></i> Error connecting to knowledge base: ${error.message}</span>`;
+                    errorElement.classList.remove('hidden');
+                    lucide.createIcons();
+                }
+            });
+        };
+
+
+        const initFirebase = async () => {
+            if (!firebaseConfig) {
+                appContainer.innerHTML = `<div class="p-8 text-center text-red-600">Error: Firebase configuration missing.</div>`;
+                return;
+            }
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Sign in with token or anonymously
+                await (initialAuthToken ? signInWithCustomToken(auth, initialAuthToken) : signInAnonymously(auth));
+                
+                // Start listening for knowledge updates
+                startKnowledgeListener();
+                
+                // Initial render
+                forceRender();
+
+            } catch (error) {
+                console.error("Firebase initialization or sign-in failed:", error);
+                const errorElement = document.getElementById('error-message');
+                if (errorElement) {
+                     errorElement.innerHTML = `<span class="flex items-center"><i data-lucide="x-circle" class="w-5 h-5 mr-2"></i> Error initializing Firebase: ${error.message}</span>`;
+                     errorElement.classList.remove('hidden');
+                     lucide.createIcons();
+                }
+                renderLoginForm();
+            }
+        };
+
+        // Initialize on window load
+        window.onload = () => {
+            initFirebase();
+            // Attach handlers to window object so they're accessible from inline HTML
+            window.handleClearImage = handleClearImage;
+        };
+
+    </script>
+</body>
+</html>
+

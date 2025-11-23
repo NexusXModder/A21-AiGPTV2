@@ -34,8 +34,8 @@
                 <i data-lucide="sparkles" class="w-6 h-6 mr-2"></i>
                 Knowledge AI
             </div>
-            <!-- Admin Panel Button: This link should be updated in your final deployment to point to the AdminPanel.jsx file -->
-            <a href="#admin" class="bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-indigo-100 transition duration-150 flex items-center text-sm">
+            <!-- Admin Panel Button: CORRECTED LINK to new HTML file -->
+            <a href="/admin_panel.html" class="bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-indigo-100 transition duration-150 flex items-center text-sm">
                 <i data-lucide="lock" class="w-4 h-4 mr-1"></i>
                 Go to Admin Login
             </a>
@@ -137,8 +137,8 @@
         import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // --- CONSTANTS ---
-        // WARNING: Set this securely! Leave empty if using an environment variable injection.
-        const GEMINI_API_KEY = ""; 
+        // *** WARNING: This key is hardcoded for deployment testing. For production, a proxy is needed. ***
+        const GEMINI_API_KEY = "AIzaSyAvMiWCYmWbGfr4HZSEayJ61tBhOLUBik"; 
         const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
         
@@ -166,8 +166,8 @@
          * API call wrapper with exponential backoff for retries.
          */
         const generateContentWithRetry = async (payload, retries = 3) => {
-            if (!GEMINI_API_KEY) {
-                renderMessage("Public chat is disabled: Gemini API Key is missing. Ask the admin to configure the key.", 'model');
+            if (!GEMINI_API_KEY || GEMINI_API_KEY.length < 10) {
+                renderMessage("Public chat is disabled: Gemini API Key is missing or invalid. Ask the admin to configure the key.", 'model');
                 return null;
             }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
@@ -181,7 +181,15 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`API returned status ${response.status}: ${await response.text()}`);
+                        const errorBody = await response.text();
+                        // Attempt to extract a useful error message
+                        try {
+                            const errorJson = JSON.parse(errorBody);
+                            const errorMessage = errorJson.error?.message || errorBody;
+                            throw new Error(`API returned status ${response.status}: ${errorMessage}`);
+                        } catch (e) {
+                             throw new Error(`API returned status ${response.status}: ${errorBody}`);
+                        }
                     }
 
                     return await response.json();
@@ -192,7 +200,7 @@
                         await new Promise(resolve => setTimeout(resolve, delay));
                         return executeFetch(attempt + 1);
                     }
-                    throw new Error("Failed to communicate with Gemini API after multiple retries.");
+                    throw new Error("Failed to communicate with Gemini API after multiple retries. Please check the network or API key.");
                 }
             };
 
@@ -218,7 +226,15 @@
 
             const textContent = document.createElement('div');
             textContent.className = 'whitespace-pre-wrap';
-            textContent.textContent = text;
+            
+            // Basic Markdown handling: bold, italics, lists, and links
+            let formattedText = text;
+            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // **Bold**
+            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>'); // *Italics*
+            formattedText = formattedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-indigo-600 hover:underline">$1</a>'); // Links
+            formattedText = formattedText.replace(/\n/g, '<br/>'); // Newlines
+            
+            textContent.innerHTML = formattedText;
             
             messageDiv.appendChild(strong);
             messageDiv.appendChild(textContent);
@@ -233,7 +249,7 @@
          */
         const handleSendMessage = async (e) => {
             e.preventDefault();
-            if (isAILoading || !GEMINI_API_KEY) return;
+            if (isAILoading || !chatInput.value.trim()) return;
 
             const userMessage = chatInput.value.trim();
             if (!userMessage) return;
@@ -244,6 +260,7 @@
             isAILoading = true;
             loadingIndicator.classList.remove('hidden');
             sendButton.disabled = true;
+            chatInput.disabled = true;
 
             // 1. Construct the System Prompt
             const systemPrompt = `You are an AI Assistant for a public-facing website. Your primary function is to answer questions based *only* on the "Knowledge Base" (text and image) provided below. Use the text and analyze the image to provide the most accurate, grounded answer. If a question cannot be answered using *only* this data, politely state that the information is not in your knowledge base.
@@ -273,6 +290,7 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
                 systemInstruction: {
                     parts: [{ text: systemPrompt }]
                 },
+                // Removed Google Search to ensure grounding relies only on Firestore data.
             };
 
             try {
@@ -288,6 +306,8 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
                 isAILoading = false;
                 loadingIndicator.classList.add('hidden');
                 sendButton.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus();
             }
         };
 
@@ -295,6 +315,7 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
         // --- FIREBASE INITIALIZATION ---
         const initFirebase = async () => {
             if (!firebaseConfig) {
+                renderMessage("Error: Firebase configuration missing.", 'model');
                 console.error("Firebase configuration missing.");
                 return;
             }
@@ -315,6 +336,7 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
 
             } catch (error) {
                 console.error("Firebase initialization or sign-in failed:", error);
+                renderMessage(`Error initializing Firebase: ${error.message}`, 'model');
             }
         };
 
@@ -336,6 +358,7 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
                 }
             }, (error) => {
                 console.error("Firestore public knowledge listener error:", error);
+                renderMessage(`Error connecting to knowledge base: ${error.message}`, 'model');
             });
         };
 
