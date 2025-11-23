@@ -1,0 +1,14 @@
+{
+  "name": "ai-knowledge-server",
+  "version": "1.0.0",
+  "description": "Admin and Public frontend for the AI Knowledge Base.",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  }
+}
+
