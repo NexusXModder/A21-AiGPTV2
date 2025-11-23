@@ -21,6 +21,7 @@
             border-radius: 4px;
         }
     </style>
+    <script src="config.js"></script>
 </head>
 <body class="min-h-screen">
 
@@ -124,21 +125,13 @@
         import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // --- CONSTANTS ---
-        // CORRECTED GEMINI API KEY from .env
-        const GEMINI_API_KEY = "AIzaSyAvMiWCYmWbGLfr4HZSEayJ61tBhOLUBik"; [span_0](start_span)//[span_0](end_span)
+        // READ FROM ENVIRONMENT VARIABLES INJECTED VIA config.js
+        const GEMINI_API_KEY = window.GEMINI_API_KEY; 
+        const firebaseConfig = window.FIREBASE_CONFIG;
+        
         const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
         
-        // --- HARDCODED FIREBASE CONFIGURATION (Fixes the configuration missing error) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCSgJ3dP9iOcp-yc-pZqh2e8kynygrs2sk", //
-            authDomain: "ai-21gpt.firebaseapp.com", //
-            projectId: "ai-21gpt", //
-            storageBucket: "ai-21gpt.firebasestorage.app", //
-            messagingSenderId: "1032282591164", //
-            appId: "1:1032282591164:web:1d99408401f0e8025165b9", //
-            measurementId: "G-FSEJP366FD" //
-        };
         const appId = firebaseConfig.projectId;
 
 
@@ -310,8 +303,8 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
 
         // --- FIREBASE INITIALIZATION ---
         const initFirebase = async () => {
-            if (!firebaseConfig.apiKey) {
-                renderMessage("Error: Firebase configuration missing.", 'model');
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                renderMessage("Error: Firebase configuration missing or malformed. Ensure FIREBASE_CONFIG is set in environment.", 'model');
                 console.error("Firebase configuration missing.");
                 return;
             }

@@ -11,6 +11,7 @@
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .knowledge-box { max-height: 200px; }
     </style>
+    <script src="config.js"></script>
 </head>
 <body class="min-h-screen">
     <div id="app">
@@ -22,22 +23,13 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
-        // ADMIN PASSWORD (from your .env file)
-        const ADMIN_PASSWORD = "arafmahbub@16"; 
+        // READ FROM ENVIRONMENT VARIABLES INJECTED VIA config.js
+        const ADMIN_PASSWORD = window.ADMIN_PASSWORD; 
+        const firebaseConfig = window.FIREBASE_CONFIG;
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
 
-        // --- HARDCODED FIREBASE CONFIGURATION (Fixes the configuration missing error) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCSgJ3dP9iOcp-yc-pZqh2e8kynygrs2sk", //
-            authDomain: "ai-21gpt.firebaseapp.com", //
-            projectId: "ai-21gpt", //
-            storageBucket: "ai-21gpt.firebasestorage.app", //
-            messagingSenderId: "1032282591164", //
-            appId: "1:1032282591164:web:1d99408401f0e8025165b9", //
-            measurementId: "G-FSEJP366FD" //
-        };
         const appId = firebaseConfig.projectId;
-        const initialAuthToken = null; // Not needed for this setup
+        const initialAuthToken = null; 
 
 
         // --- FIREBASE AND STATE ---
@@ -344,8 +336,8 @@
 
 
         const initFirebase = async () => {
-            if (!firebaseConfig.apiKey) {
-                appContainer.innerHTML = `<div class="p-8 text-center text-red-600">Error: Firebase configuration missing.</div>`;
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                appContainer.innerHTML = `<div class="p-8 text-center text-red-600">Error: Firebase configuration missing or malformed. Ensure FIREBASE_CONFIG is set in environment.</div>`;
                 return;
             }
 
