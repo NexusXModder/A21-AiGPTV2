@@ -132,8 +132,8 @@
         const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
         
-        const appId = firebaseConfig.projectId;
-
+        // Derive appId from the Firebase config object
+        const appId = firebaseConfig ? firebaseConfig.projectId : 'default-app-id';
 
         // --- DOM ELEMENTS ---
         const chatHistory = document.getElementById('chat-history');
@@ -279,7 +279,6 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
                 systemInstruction: {
                     parts: [{ text: systemPrompt }]
                 },
-                // Removed Google Search to ensure grounding relies only on Firestore data.
             };
 
             try {
@@ -305,7 +304,6 @@ TEXT: ${knowledgeText || "No text knowledge data uploaded yet."}
         const initFirebase = async () => {
             if (!firebaseConfig || !firebaseConfig.apiKey) {
                 renderMessage("Error: Firebase configuration missing or malformed. Ensure FIREBASE_CONFIG is set in environment.", 'model');
-                console.error("Firebase configuration missing.");
                 return;
             }
 

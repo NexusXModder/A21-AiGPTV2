@@ -28,7 +28,8 @@
         const firebaseConfig = window.FIREBASE_CONFIG;
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
 
-        const appId = firebaseConfig.projectId;
+        // Derive appId from the Firebase config object
+        const appId = firebaseConfig ? firebaseConfig.projectId : 'default-app-id';
         const initialAuthToken = null; 
 
 
