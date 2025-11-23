@@ -22,22 +22,22 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
-        // ADMIN PASSWORD (From .env file)
+        // ADMIN PASSWORD (from your .env file)
         const ADMIN_PASSWORD = "arafmahbub@16"; 
         const KNOWLEDGE_DOC_PATH = "ai_knowledge/master_doc";
 
-        // --- HARDCODED FIREBASE CONFIGURATION (The fix for the missing config error) ---
+        // --- HARDCODED FIREBASE CONFIGURATION (Fixes the configuration missing error) ---
         const firebaseConfig = {
-            apiKey: "AIzaSyCSgJ3dP9iOcp-yc-pZqh2e8kynygrs2sk",
-            authDomain: "ai-21gpt.firebaseapp.com",
-            projectId: "ai-21gpt",
-            storageBucket: "ai-21gpt.firebasestorage.app",
-            messagingSenderId: "1032282591164",
-            appId: "1:1032282591164:web:1d99408401f0e8025165b9",
-            measurementId: "G-FSEJP366FD"
+            apiKey: "AIzaSyCSgJ3dP9iOcp-yc-pZqh2e8kynygrs2sk", //
+            authDomain: "ai-21gpt.firebaseapp.com", //
+            projectId: "ai-21gpt", //
+            storageBucket: "ai-21gpt.firebasestorage.app", //
+            messagingSenderId: "1032282591164", //
+            appId: "1:1032282591164:web:1d99408401f0e8025165b9", //
+            measurementId: "G-FSEJP366FD" //
         };
         const appId = firebaseConfig.projectId;
-        const initialAuthToken = null;
+        const initialAuthToken = null; // Not needed for this setup
 
 
         // --- FIREBASE AND STATE ---
@@ -344,7 +344,6 @@
 
 
         const initFirebase = async () => {
-            // Check if hardcoded config is present
             if (!firebaseConfig.apiKey) {
                 appContainer.innerHTML = `<div class="p-8 text-center text-red-600">Error: Firebase configuration missing.</div>`;
                 return;
